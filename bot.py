@@ -108,19 +108,19 @@ TEXTS = {
         "btn_enter_giveaway": "Enter Giveaway",
         "giveaway_title": "🎉 NEW GIVEAWAY | Новый розыгрыш",
         "giveaway_prize": "🎁 Prize",
-        "giveaway_end": "Ends",
-        "giveaway_hosts": "🚀 Creator",
-        "giveaway_participants": "📜 Participants",
+        "giveaway_end": "⏳ Ends",
+        "giveaway_hosts": "👑 Creator",
+        "giveaway_participants": "📃 Participants",
         "giveaway_entered": "You have entered the giveaway!",
         "giveaway_already_entered": "You have already entered this giveaway!",
         "giveaway_ended": "❌ Giveaway Ended",
-        "giveaway_winner": "⭐ Winner",
+        "giveaway_winner": "🥇 Winner",
         "giveaway_no_participants": "No participants in this giveaway!",
         "giveaway_created": "Giveaway created in {channel}!",
         "giveaway_ended_log": "Giveaway ended",
         "giveaway_created_log": "Giveaway created",
         "giveaway_winner_log": "Giveaway winner selected",
-        "gw_rules": "Rules",
+        "gw_rules": "🧾 Rules",
         "gw_rules_val": "- React to enter\n- Must be in server\n- Winner announced automatically",
         "gw_stats": "Statistics",
         "gw_stats_val": "- Total participants: **{total}**\n- Winners selected: **{winners}**\n- Fair random selection: Yes",
@@ -367,7 +367,7 @@ def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
     )
     
     embed.add_field(
-        name="Winners",
+        name="✨ Winners",
         value=f"**{winners}**",
         inline=True
     )
