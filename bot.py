@@ -3,7 +3,7 @@
 """
 Aeternis Core - Official Discord Bot
 Project: Aeternis MU Online
-Version: 3.0 (Full System - Enhanced Giveaway)
+Version: 3.1 (Clean Giveaway System)
 """
 
 import os
@@ -40,40 +40,40 @@ LOG_CHANNEL_ID = 1487390220830900344
 GIVEAWAY_BANNER = "https://i.imgur.com/Nce6GzV.jpeg"
 
 # ============================================================
-# СИСТЕМА ЛОКАЛИЗАЦИИ
+# СИСТЕМА ЛОКАЛИЗАЦИИ (ЧИСТЫЕ ЭМОДЗИ)
 # ============================================================
 
 TEXTS = {
     "en": {
-        "welcome_title": "⚔️ WELCOME TO AETERNIS",
+        "welcome_title": "WELCOME TO AETERNIS",
         "welcome_desc": "*The Eternal Battle Begins Here*\n\n**Greetings, Warrior!**\n\nYou have entered the realm of **Aeternis**, where legends are forged and eternity awaits.",
-        "quick_start": "🚀 QUICK START",
-        "verify": "**1️⃣ Verify** — Read rules & verify",
-        "language": "**2️⃣ Language** — Choose your language",
-        "download": "**3️⃣ Download** — Get the client",
-        "connect": "**4️⃣ Connect** — Join the battle",
-        "links": "📢 IMPORTANT LINKS",
-        "website": "🌐 Website",
-        "wiki": "📖 Wiki/Guide",
-        "donate": "🛒 Donate Shop",
-        "server_info": "📜 SERVER INFO",
-        "footer": "Aeternis Core • MU Online",
+        "quick_start": "QUICK START",
+        "verify": "1. Verify - Read rules and verify",
+        "language": "2. Language - Choose your language",
+        "download": "3. Download - Get the client",
+        "connect": "4. Connect - Join the battle",
+        "links": "IMPORTANT LINKS",
+        "website": "Website",
+        "wiki": "Wiki/Guide",
+        "donate": "Donate Shop",
+        "server_info": "SERVER INFO",
+        "footer": "Aeternis Core - MU Online",
         
-        "roles_title": "🌍 Language Selection",
+        "roles_title": "Language Selection",
         "roles_desc": "**Select your language to access regional channels!**\n\nClick the buttons below to add or remove language roles.",
-        "available_lang": "📋 Available Languages",
-        "how_it_works": "⚙️ How it works",
-        "how_it_works_val": "Click a button to **add** the role.\nClick again to **remove** it.",
-        "permissions": "🔒 Permissions",
+        "available_lang": "Available Languages",
+        "how_it_works": "How it works",
+        "how_it_works_val": "Click a button to add the role.\nClick again to remove it.",
+        "permissions": "Permissions",
         "permissions_val": "Roles grant access to language-specific channels.",
         
-        "tickets_title": "🎫 Support Center",
-        "tickets_desc": "**Need help? Create a ticket!**\n\nOur staff will assist you with:\n• 🐛 Bug Reports\n• 💰 Donation Issues\n• 📋 Account Problems\n• ❓ General Questions",
-        "response_time": "⏱️ Response Time",
+        "tickets_title": "Support Center",
+        "tickets_desc": "**Need help? Create a ticket!**\n\nOur staff will assist you with:\n- Bug Reports\n- Donation Issues\n- Account Problems\n- General Questions",
+        "response_time": "Response Time",
         "response_time_val": "Usually within 24 hours",
-        "languages": "🌍 Languages",
+        "languages": "Languages",
         "languages_val": "EN / RU / ES / PT / TR / VN / PH",
-        "rules": "📋 Rules",
+        "rules": "Rules",
         "rules_val": "Be respectful",
         
         "btn_create_ticket": "Create Ticket",
@@ -83,21 +83,21 @@ TEXTS = {
         "btn_general": "General",
         "btn_ru": "Russian",
         
-        "ticket_welcome": "🎫 Support Ticket",
+        "ticket_welcome": "Support Ticket",
         "ticket_welcome_desc": "**Welcome, {mention}!**\n\nPlease describe your issue in detail.\n\nA staff member will assist you shortly.",
-        "ticket_created": "✅ Ticket created: {channel}",
-        "ticket_exists": "❌ You already have an open ticket! Please close it before creating a new one.",
-        "ticket_closed": "🔒 Ticket closed.",
-        "close_confirm": "⚠️ Are you sure you want to close this ticket?",
-        "close_cancelled": "❌ Closing cancelled.",
-        "no_permission": "🚫 Insufficient permissions!",
-        "category_not_found": "❌ Ticket category not found!",
-        "error_creating": "❌ Error creating ticket: {error}",
+        "ticket_created": "Ticket created: {channel}",
+        "ticket_exists": "You already have an open ticket! Please close it before creating a new one.",
+        "ticket_closed": "Ticket closed.",
+        "close_confirm": "Are you sure you want to close this ticket?",
+        "close_cancelled": "Closing cancelled.",
+        "no_permission": "Insufficient permissions!",
+        "category_not_found": "Ticket category not found!",
+        "error_creating": "Error creating ticket: {error}",
         
-        "role_added": "✅ Role **{role}** added!",
-        "role_removed": "❌ Role **{role}** removed!",
-        "role_not_found": "❌ Role not found!",
-        "admin_panel_only": "🚫 Only administrators can create this panel!",
+        "role_added": "Role **{role}** added!",
+        "role_removed": "Role **{role}** removed!",
+        "role_not_found": "Role not found!",
+        "admin_panel_only": "Only administrators can create this panel!",
         
         "log_member_join": "Member Joined",
         "log_member_leave": "Member Left",
@@ -105,20 +105,17 @@ TEXTS = {
         "log_ticket_close": "Ticket Closed",
         
         "btn_enter_giveaway": "Enter Giveaway",
-        "btn_leave_giveaway": "Leave",
-        "giveaway_title": "🎉 GIVEAWAY",
-        "giveaway_prize": "🏆 Prize",
-        "giveaway_end": "⏰ Ends",
-        "giveaway_hosts": "👤 Hosted by",
-        "giveaway_participants": "👥 Participants",
-        "giveaway_entered": "✅ You have entered the giveaway!",
-        "giveaway_left": "❌ You have left the giveaway!",
-        "giveaway_already_entered": "⚠️ You have already entered this giveaway!",
-        "giveaway_not_entered": "❌ You have not entered this giveaway!",
-        "giveaway_ended": "🏁 Giveaway Ended",
-        "giveaway_winner": "🎊 Winner",
-        "giveaway_no_participants": "😔 No participants in this giveaway!",
-        "giveaway_created": "🎁 Giveaway created in {channel}!",
+        "giveaway_title": "GIVEAWAY",
+        "giveaway_prize": "Prize",
+        "giveaway_end": "Ends",
+        "giveaway_hosts": "Hosted by",
+        "giveaway_participants": "Participants",
+        "giveaway_entered": "You have entered the giveaway!",
+        "giveaway_already_entered": "You have already entered this giveaway!",
+        "giveaway_ended": "Giveaway Ended",
+        "giveaway_winner": "Winner",
+        "giveaway_no_participants": "No participants in this giveaway!",
+        "giveaway_created": "Giveaway created in {channel}!",
         "giveaway_ended_log": "Giveaway ended",
         "giveaway_created_log": "Giveaway created",
         "giveaway_winner_log": "Giveaway winner selected",
@@ -126,42 +123,42 @@ TEXTS = {
         "gw_invalid_duration": "Invalid duration! Use: 1h, 24h, 7d, etc.",
         "gw_invalid_winners": "Invalid number of winners! Use a number between 1 and 10.",
         "gw_no_prize": "Please specify a prize!",
-        "gw_rules": "📋 Rules",
-        "gw_rules_val": "• React to enter\n• Must be in server\n• Winner announced automatically",
-        "gw_stats": "📊 Statistics",
-        "gw_stats_val": "• Total participants: **{total}**\n• Winners selected: **{winners}**\n• Fair random selection: ✅",
-        "gw_congrats": "✨ Congratulations! Check your DMs for instructions."
+        "gw_rules": "Rules",
+        "gw_rules_val": "- React to enter\n- Must be in server\n- Winner announced automatically",
+        "gw_stats": "Statistics",
+        "gw_stats_val": "- Total participants: **{total}**\n- Winners selected: **{winners}**\n- Fair random selection: Yes",
+        "gw_congrats": "Congratulations! Check your DMs for instructions."
     },
     "ru": {
-        "welcome_title": "⚔️ ДОБРО ПОЖАЛОВАТЬ В AETERNIS",
+        "welcome_title": "ДОБРО ПОЖАЛОВАТЬ В AETERNIS",
         "welcome_desc": "*Вечная Битва Начинается Здесь*\n\n**Приветствуем, Воин!**\n\nВы вошли в мир **Aeternis**, где куются легенды и ждет вечность.",
-        "quick_start": "🚀 БЫСТРЫЙ СТАРТ",
-        "verify": "**1️⃣ Верификация** — Прочти правила",
-        "language": "**2️⃣ Язык** — Выбери свой язык",
-        "download": "**3️⃣ Скачать** — Загрузи клиент",
-        "connect": "**4️⃣ Подключение** — Вступай в битву",
-        "links": "📢 ВАЖНЫЕ ССЫЛКИ",
-        "website": "🌐 Сайт",
-        "wiki": "📖 Вики/Гайды",
-        "donate": "🛒 Донат Шоп",
-        "server_info": "📜 ИНФОРМАЦИЯ СЕРВЕРА",
-        "footer": "Aeternis Core • MU Online",
+        "quick_start": "БЫСТРЫЙ СТАРТ",
+        "verify": "1. Верификация - Прочти правила",
+        "language": "2. Язык - Выбери свой язык",
+        "download": "3. Скачать - Загрузи клиент",
+        "connect": "4. Подключение - Вступай в битву",
+        "links": "ВАЖНЫЕ ССЫЛКИ",
+        "website": "Сайт",
+        "wiki": "Вики/Гайды",
+        "donate": "Донат Шоп",
+        "server_info": "ИНФОРМАЦИЯ СЕРВЕРА",
+        "footer": "Aeternis Core - MU Online",
         
-        "roles_title": "🌍 Выбор Языка",
+        "roles_title": "Выбор Языка",
         "roles_desc": "**Выберите свой язык для доступа к региональным каналам!**\n\nНажмите на кнопки ниже, чтобы добавить или удалить языковые роли.",
-        "available_lang": "📋 Доступные Языки",
-        "how_it_works": "⚙️ Как это работает",
-        "how_it_works_val": "Нажмите чтобы **добавить** роль.\nНажмите снова чтобы **удалить**.",
-        "permissions": "🔒 Права доступа",
+        "available_lang": "Доступные Языки",
+        "how_it_works": "Как это работает",
+        "how_it_works_val": "Нажмите чтобы добавить роль.\nНажмите снова чтобы удалить.",
+        "permissions": "Права доступа",
         "permissions_val": "Роли дают доступ к языковым каналам.",
         
-        "tickets_title": "🎫 Центр Поддержки",
-        "tickets_desc": "**Нужна помощь? Создайте тикет!**\n\nНаши сотрудники помогут вам с:\n• 🐛 Сообщения об ошибках\n• 💰 Проблемы с донатом\n• 📋 Проблемы аккаунта\n• ❓ Общие вопросы",
-        "response_time": "⏱️ Время ответа",
+        "tickets_title": "Центр Поддержки",
+        "tickets_desc": "**Нужна помощь? Создайте тикет!**\n\nНаши сотрудники помогут вам с:\n- Сообщения об ошибках\n- Проблемы с донатом\n- Проблемы аккаунта\n- Общие вопросы",
+        "response_time": "Время ответа",
         "response_time_val": "Обычно в течение 24 часов",
-        "languages": "🌍 Языки",
+        "languages": "Языки",
         "languages_val": "EN / RU / ES / PT / TR / VN / PH",
-        "rules": "📋 Правила",
+        "rules": "Правила",
         "rules_val": "Будьте уважительны",
         
         "btn_create_ticket": "Создать Тикет",
@@ -171,21 +168,21 @@ TEXTS = {
         "btn_general": "General",
         "btn_ru": "Русский",
         
-        "ticket_welcome": "🎫 Тикет Поддержки",
+        "ticket_welcome": "Тикет Поддержки",
         "ticket_welcome_desc": "**Добро пожаловать, {mention}!**\n\nПожалуйста, подробно опишите вашу проблему.\n\nСотрудник скоро вам поможет.",
-        "ticket_created": "✅ Тикет создан: {channel}",
-        "ticket_exists": "❌ У вас уже есть открытый тикет! Закройте его перед созданием нового.",
-        "ticket_closed": "🔒 Тикет закрыт.",
-        "close_confirm": "⚠️ Вы уверены, что хотите закрыть этот тикет?",
-        "close_cancelled": "❌ Закрытие отменено.",
-        "no_permission": "🚫 Недостаточно прав!",
-        "category_not_found": "❌ Категория тикетов не найдена!",
-        "error_creating": "❌ Ошибка создания тикета: {error}",
+        "ticket_created": "Тикет создан: {channel}",
+        "ticket_exists": "У вас уже есть открытый тикет! Закройте его перед созданием нового.",
+        "ticket_closed": "Тикет закрыт.",
+        "close_confirm": "Вы уверены, что хотите закрыть этот тикет?",
+        "close_cancelled": "Закрытие отменено.",
+        "no_permission": "Недостаточно прав!",
+        "category_not_found": "Категория тикетов не найдена!",
+        "error_creating": "Ошибка создания тикета: {error}",
         
-        "role_added": "✅ Роль **{role}** добавлена!",
-        "role_removed": "❌ Роль **{role}** удалена!",
-        "role_not_found": "❌ Роль не найдена!",
-        "admin_panel_only": "🚫 Только администраторы могут создавать эту панель!",
+        "role_added": "Роль **{role}** добавлена!",
+        "role_removed": "Роль **{role}** удалена!",
+        "role_not_found": "Роль не найдена!",
+        "admin_panel_only": "Только администраторы могут создавать эту панель!",
         
         "log_member_join": "Пользователь вошел",
         "log_member_leave": "Пользователь вышел",
@@ -193,20 +190,17 @@ TEXTS = {
         "log_ticket_close": "Тикет закрыт",
         
         "btn_enter_giveaway": "Участвовать",
-        "btn_leave_giveaway": "Отмена",
-        "giveaway_title": "🎉 РОЗЫГРЫШ",
-        "giveaway_prize": "🏆 Приз",
-        "giveaway_end": "⏰ Завершение",
-        "giveaway_hosts": "👤 Организатор",
-        "giveaway_participants": "👥 Участников",
-        "giveaway_entered": "✅ Вы участвуете в розыгрыше!",
-        "giveaway_left": "❌ Вы отменили участие!",
-        "giveaway_already_entered": "⚠️ Вы уже участвуете в этом розыгрыше!",
-        "giveaway_not_entered": "❌ Вы не участвуете в этом розыгрыше!",
-        "giveaway_ended": "🏁 Розыгрыш завершен",
-        "giveaway_winner": "🎊 Победитель",
-        "giveaway_no_participants": "😔 Нет участников в этом розыгрыше!",
-        "giveaway_created": "🎁 Розыгрыш создан в {channel}!",
+        "giveaway_title": "РОЗЫГРЫШ",
+        "giveaway_prize": "Приз",
+        "giveaway_end": "Завершение",
+        "giveaway_hosts": "Организатор",
+        "giveaway_participants": "Участников",
+        "giveaway_entered": "Вы участвуете в розыгрыше!",
+        "giveaway_already_entered": "Вы уже участвуете в этом розыгрыше!",
+        "giveaway_ended": "Розыгрыш завершен",
+        "giveaway_winner": "Победитель",
+        "giveaway_no_participants": "Нет участников в этом розыгрыше!",
+        "giveaway_created": "Розыгрыш создан в {channel}!",
         "giveaway_ended_log": "Розыгрыш завершен",
         "giveaway_created_log": "Розыгрыш создан",
         "giveaway_winner_log": "Победитель розыгрыша выбран",
@@ -214,11 +208,11 @@ TEXTS = {
         "gw_invalid_duration": "Неверное время! Используйте: 1h, 24h, 7d и т.д.",
         "gw_invalid_winners": "Неверное число победителей! Используйте число от 1 до 10.",
         "gw_no_prize": "Укажите приз!",
-        "gw_rules": "📋 Правила",
-        "gw_rules_val": "• Нажмите для участия\n• Быть на сервере\n• Авто-выбор победителя",
-        "gw_stats": "📊 Статистика",
-        "gw_stats_val": "• Всего участников: **{total}**\n• Победителей: **{winners}**\n• Честный выбор: ✅",
-        "gw_congrats": "✨ Поздравляем! Проверьте ЛС для инструкций."
+        "gw_rules": "Правила",
+        "gw_rules_val": "- Нажмите для участия\n- Быть на сервере\n- Авто-выбор победителя",
+        "gw_stats": "Статистика",
+        "gw_stats_val": "- Всего участников: **{total}**\n- Победителей: **{winners}**\n- Честный выбор: Да",
+        "gw_congrats": "Поздравляем! Проверьте ЛС для инструкций."
     }
 }
 
@@ -287,7 +281,7 @@ def has_permission(member, admin_only=False):
     return False
 
 # ============================================================
-# КЛАССЫ ДЛЯ РОЗЫГРЫШЕЙ
+# КЛАССЫ ДЛЯ РОЗЫГРЫШЕЙ (БЕЗ КНОПКИ LEAVE)
 # ============================================================
 
 class GiveawayEnterButton(Button):
@@ -312,41 +306,14 @@ class GiveawayEnterButton(Button):
             return
         giveaway["participants"].append(interaction.user.id)
         embed = interaction.message.embeds[0]
-        embed.set_field_at(3, name=f"👥 {t('giveaway_participants', lang)}", value=f"**{len(giveaway['participants'])}** participants", inline=True)
+        embed.set_field_at(3, name=t("giveaway_participants", lang), value=f"**{len(giveaway['participants'])}**", inline=True)
         await interaction.message.edit(embed=embed)
         await interaction.response.send_message(t("giveaway_entered", lang), ephemeral=True)
-
-class GiveawayLeaveButton(Button):
-    def __init__(self, lang="en"):
-        super().__init__(
-            label=t("btn_leave_giveaway", lang),
-            style=discord.ButtonStyle.danger,
-            custom_id="giveaway_leave",
-            emoji="❌"
-        )
-        self.lang = lang
-    
-    async def callback(self, interaction: discord.Interaction):
-        lang = get_user_lang(interaction.user)
-        message_id = interaction.message.id
-        if message_id not in active_giveaways:
-            await interaction.response.send_message("This giveaway is no longer active!", ephemeral=True)
-            return
-        giveaway = active_giveaways[message_id]
-        if interaction.user.id not in giveaway["participants"]:
-            await interaction.response.send_message(t("giveaway_not_entered", lang), ephemeral=True)
-            return
-        giveaway["participants"].remove(interaction.user.id)
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(3, name=f"👥 {t('giveaway_participants', lang)}", value=f"**{len(giveaway['participants'])}** participants", inline=True)
-        await interaction.message.edit(embed=embed)
-        await interaction.response.send_message(t("giveaway_left", lang), ephemeral=True)
 
 class GiveawayView(View):
     def __init__(self, lang="en"):
         super().__init__(timeout=None)
         self.add_item(GiveawayEnterButton(lang=lang))
-        self.add_item(GiveawayLeaveButton(lang=lang))
 
 # ============================================================
 # ФУНКЦИИ РОЗЫГРЫШЕЙ
@@ -369,7 +336,7 @@ def parse_duration(duration_str):
         return None
 
 def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
-    """Создаёт визуально привлекательный Embed для розыгрыша"""
+    """Создаёт чистый Embed для розыгрыша без дублирования эмодзи"""
     
     divider = "━━━━━━━━━━━━━━━━━━━━"
     
@@ -377,8 +344,8 @@ def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
         title=t("giveaway_title", lang),
         description=(
             f"{divider}\n"
-            f"### {t('giveaway_prize', lang)}\n"
-            f"> **{prize}**\n"
+            f"**{t('giveaway_prize', lang)}**\n"
+            f"> {prize}\n"
             f"{divider}"
         ),
         color=0xFFD700,
@@ -388,26 +355,26 @@ def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
     embed.set_image(url=GIVEAWAY_BANNER)
     
     embed.add_field(
-        name=f"⏰ {t('giveaway_end', lang)}",
+        name=t("giveaway_end", lang),
         value=f"<t:{int(end_time.timestamp())}:F>\n<t:{int(end_time.timestamp())}:R>",
         inline=True
     )
     
     embed.add_field(
-        name=f"👤 {t('giveaway_hosts', lang)}",
+        name=t("giveaway_hosts", lang),
         value=f"{host.mention}",
         inline=True
     )
     
     embed.add_field(
-        name="🎟️ Winners",
-        value=f"**{winners}** winner(s)",
+        name="Winners",
+        value=f"**{winners}**",
         inline=True
     )
     
     embed.add_field(
-        name=f"👥 {t('giveaway_participants', lang)}",
-        value="**0** participants",
+        name=t("giveaway_participants", lang),
+        value="**0**",
         inline=True
     )
     
@@ -422,7 +389,7 @@ def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
     return embed
 
 async def end_giveaway(message_id):
-    """Завершает розыгрыш и выбирает победителя с красивым оформлением"""
+    """Завершает розыгрыш с чистым оформлением"""
     
     if message_id not in active_giveaways:
         return
@@ -443,11 +410,11 @@ async def end_giveaway(message_id):
             title=t("giveaway_ended", lang),
             description=(
                 f"{divider}\n"
-                f"### {t('giveaway_prize', lang)}\n"
-                f"> **{prize}**\n"
+                f"**{t('giveaway_prize', lang)}**\n"
+                f"> {prize}\n"
                 f"{divider}\n\n"
-                f"😔 {t('giveaway_no_participants', lang)}\n\n"
-                f"💡 Try joining the next giveaway!"
+                f"{t('giveaway_no_participants', lang)}\n\n"
+                f"Try joining the next giveaway!"
             ),
             color=0xFF6B6B,
             timestamp=datetime.utcnow()
@@ -475,11 +442,10 @@ async def end_giveaway(message_id):
         title=t("giveaway_ended", lang),
         description=(
             f"{divider}\n"
-            f"### {t('giveaway_prize', lang)}\n"
-            f"> **{prize}**\n"
+            f"**{t('giveaway_prize', lang)}**\n"
+            f"> {prize}\n"
             f"{divider}\n\n"
-            f"🎊 {t('giveaway_winner', lang)}:\n"
-            f"> {winners_mention}\n\n"
+            f"**{t('giveaway_winner', lang)}:**\n{winners_mention}\n\n"
             f"{t('gw_congrats', lang)}"
         ),
         color=0x00FFA3,
@@ -498,7 +464,7 @@ async def end_giveaway(message_id):
     try:
         msg = await channel.fetch_message(message_id)
         await msg.edit(embed=embed, view=None)
-        await channel.send(f"🎉 Congratulations: {winners_mention}!")
+        await channel.send(f"Congratulations: {winners_mention}!")
     except Exception as e:
         print(f"Error ending giveaway: {e}")
     
@@ -663,13 +629,13 @@ def create_welcome_embed(lang="en"):
     embed.set_footer(text=t("footer", lang))
     embed.add_field(name=t("quick_start", lang), value=f"{t('verify', lang)}\n{t('language', lang)}\n{t('download', lang)}\n{t('connect', lang)}", inline=False)
     embed.add_field(name=t("links", lang), value=f"{t('website', lang)}\n{t('wiki', lang)}\n{t('donate', lang)}", inline=True)
-    embed.add_field(name=t("server_info", lang), value="⚔️ EXP: [X]x\n💎 Drop: [X]x\n🛡️ Max Lvl: [X]", inline=True)
+    embed.add_field(name=t("server_info", lang), value="EXP: [X]x\nDrop: [X]x\nMax Lvl: [X]", inline=True)
     return embed
 
 def create_roles_embed(lang="en"):
     embed = discord.Embed(title=t("roles_title", lang), description=t("roles_desc", lang), color=0x5865F2, timestamp=discord.utils.utcnow())
     embed.set_footer(text=t("footer", lang))
-    embed.add_field(name=t("available_lang", lang), value="🌍 **General** — International\n🇪🇸 **Español** — Spanish\n🇵🇹 **Português** — Portuguese\n🇷🇺 **Русский** — Russian\n🇹🇷 **Türkçe** — Turkish\n🇻🇳 **Tiếng Việt** — Vietnamese\n🇵🇭 **Filipino** — Filipino", inline=False)
+    embed.add_field(name=t("available_lang", lang), value="General - International\nEspañol - Spanish\nPortuguês - Portuguese\nРусский - Russian\nTürkçe - Turkish\nTiếng Việt - Vietnamese\nFilipino - Filipino", inline=False)
     embed.add_field(name=t("how_it_works", lang), value=t("how_it_works_val", lang), inline=True)
     embed.add_field(name=t("permissions", lang), value=t("permissions_val", lang), inline=True)
     return embed
@@ -692,7 +658,7 @@ async def on_ready():
     client.add_view(TicketPanelView())
     client.add_view(LangView())
     client.add_view(GiveawayView())
-    print("Aeternis Core v3.0 (Full System) started")
+    print("Aeternis Core v3.1 (Clean Giveaway) started")
     print(f"Bot: {client.user.name}")
     print(f"ID: {client.user.id}")
     print(f"Languages: EN / RU")
@@ -701,11 +667,11 @@ async def on_ready():
 
 @client.event
 async def on_member_join(member):
-    await send_log(t("log_member_join", "en"), f"User: {member.name}#{member.discriminator}\nID: {member.id}", color=0x00FF00)
+    await send_log(t("log_member_join", "en"), f"User: {member.name}\nID: {member.id}", color=0x00FF00)
 
 @client.event
 async def on_member_remove(member):
-    await send_log(t("log_member_leave", "en"), f"User: {member.name}#{member.discriminator}\nID: {member.id}", color=0xFF0000)
+    await send_log(t("log_member_leave", "en"), f"User: {member.name}\nID: {member.id}", color=0xFF0000)
 
 @client.event
 async def on_message(message):
