@@ -3,7 +3,7 @@
 """
 Aeternis Core - Official Discord Bot
 Project: Aeternis MU Online
-Version: 3.2 (Slash Commands)
+Version: 3.2 (Slash Commands + Thumbnail Giveaway)
 """
 
 import os
@@ -38,7 +38,7 @@ LANGUAGE_ROLES = {
 
 TICKET_CATEGORY_ID = 1487369421440946236
 LOG_CHANNEL_ID = 1487390220830900344
-GIVEAWAY_BANNER = "https://i.imgur.com/sKviD3r.jpeg"
+GIVEAWAY_THUMBNAIL = "https://i.imgur.com/sKviD3r.jpeg"
 
 # ============================================================
 # СИСТЕМА ЛОКАЛИЗАЦИИ
@@ -352,7 +352,8 @@ def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
         timestamp=datetime.utcnow()
     )
     
-    embed.set_image(url=GIVEAWAY_BANNER)
+    # 🖼️ АВАТАРКА ЭМБЕДА (вместо баннера)
+    embed.set_thumbnail(url=GIVEAWAY_THUMBNAIL)
     
     embed.add_field(
         name=t("giveaway_end", lang),
@@ -417,7 +418,7 @@ async def end_giveaway(message_id):
             color=0xFF6B6B,
             timestamp=datetime.utcnow()
         )
-        embed.set_image(url=GIVEAWAY_BANNER)
+        embed.set_thumbnail(url=GIVEAWAY_THUMBNAIL)
         embed.set_footer(text=t("footer", lang))
         
         try:
@@ -450,7 +451,7 @@ async def end_giveaway(message_id):
         timestamp=datetime.utcnow()
     )
     
-    embed.set_image(url=GIVEAWAY_BANNER)
+    embed.set_thumbnail(url=GIVEAWAY_THUMBNAIL)
     embed.add_field(
         name=t("gw_stats", lang),
         value=t("gw_stats_val", lang).format(total=len(participants), winners=len(selected_winners)),
@@ -492,23 +493,19 @@ async def scheduled_end_giveaway(message_id, end_time):
 async def giveaway_command(interaction: discord.Interaction, duration: str, winners: int, prize: str):
     lang = get_user_lang(interaction.user)
     
-    # Проверка прав (дублирующая на всякий случай)
     if not has_permission(interaction.user, admin_only=True):
         await interaction.response.send_message(t("no_permission", lang), ephemeral=True)
         return
     
-    # Проверка количества победителей
     if winners < 1 or winners > 10:
         await interaction.response.send_message(t("gw_invalid_winners", lang), ephemeral=True)
         return
     
-    # Проверка длительности
     end_time = parse_duration(duration)
     if not end_time:
         await interaction.response.send_message(t("gw_invalid_duration", lang), ephemeral=True)
         return
     
-    # Создание розыгрыша
     embed = create_giveaway_embed(prize, end_time, winners, interaction.user, lang)
     view = GiveawayView(lang=lang)
     
@@ -717,15 +714,11 @@ def create_tickets_embed(lang="en"):
 @client.event
 async def on_ready():
     await client.change_presence(status=discord.Status.do_not_disturb, activity=discord.Activity(type=discord.ActivityType.watching, name="Aeternis MU Online"))
-    
-    # Синхронизация слэш-команд
     await tree.sync()
-    
     client.add_view(TicketPanelView())
     client.add_view(LangView())
     client.add_view(GiveawayView())
-    
-    print("Aeternis Core v3.2 (Slash Commands) started")
+    print("Aeternis Core v3.2 (Thumbnail Giveaway) started")
     print(f"Bot: {client.user.name}")
     print(f"ID: {client.user.id}")
     print(f"Languages: EN / RU")
