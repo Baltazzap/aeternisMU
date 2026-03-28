@@ -3,7 +3,7 @@
 """
 Aeternis Core - Official Discord Bot
 Project: Aeternis MU Online
-Version: 4.0 (AutoMod System)
+Version: 4.1 (AutoMod + Clear Command)
 """
 
 import os
@@ -40,16 +40,16 @@ LANGUAGE_ROLES = {
 
 TICKET_CATEGORY_ID = 1487369421440946236
 LOG_CHANNEL_ID = 1487390220830900344
-MUTE_ROLE_ID = 1487360998946898002  # 🚫 Роль мута
+MUTE_ROLE_ID = 1487360998946898002
 GIVEAWAY_THUMBNAIL = "https://i.imgur.com/7K8oSFK.png"
 
 # ⚙️ НАСТРОЙКИ АВТО-МОДЕРАЦИИ
 AUTOMOD_CONFIG = {
-    "flood_limit": 5,          # Кол-во сообщений
-    "flood_time": 5,           # За сколько секунд (порог срабатывания)
-    "duplicate_check": True,   # Блокировать дубликаты сообщений
-    "anti_invite": True,       # Блокировать инвайты в Дискорд
-    "warn_dm": True            # Отправлять предупреждение в ЛС
+    "flood_limit": 5,
+    "flood_time": 5,
+    "duplicate_check": True,
+    "anti_invite": True,
+    "warn_dm": True
 }
 
 # ============================================================
@@ -117,6 +117,7 @@ TEXTS = {
         "log_ticket_create": "Ticket Created",
         "log_ticket_close": "Ticket Closed",
         "log_automod": "AutoMod Action",
+        "log_clear": "Messages Cleared",
         
         "btn_enter_giveaway": "Enter Giveaway",
         "giveaway_title": "🎉 NEW GIVEAWAY | Новый розыгрыш",
@@ -143,14 +144,18 @@ TEXTS = {
         "gw_no_prize": "Please specify a prize!",
         "gw_success": "Giveaway created successfully!",
         
-        # 🛡️ AUTOMOD TEXTS
         "automod_flood": "⚠️ Please slow down! You are sending messages too fast.",
         "automod_spam": "⚠️ Please do not send duplicate messages.",
         "automod_invite": "⚠️ Posting Discord invite links is not allowed.",
         "automod_muted": "🔇 You have been muted for violating server rules.",
         "automod_log_flood": "User flooded chat",
         "automod_log_spam": "User spammed duplicate messages",
-        "automod_log_invite": "User posted Discord invite link"
+        "automod_log_invite": "User posted Discord invite link",
+        
+        "clear_success": "✅ Successfully deleted **{count}** messages.",
+        "clear_invalid_amount": "❌ Please specify a number between 1 and 100.",
+        "clear_no_permission": "🚫 You don't have permission to use this command.",
+        "clear_log": "Cleared {count} messages in #{channel}"
     },
     "ru": {
         "welcome_title": "ДОБРО ПОЖАЛОВАТЬ В AETERNIS",
@@ -212,6 +217,7 @@ TEXTS = {
         "log_ticket_create": "Тикет создан",
         "log_ticket_close": "Тикет закрыт",
         "log_automod": "Действие Авто-мода",
+        "log_clear": "Сообщения удалены",
         
         "btn_enter_giveaway": "Участвовать",
         "giveaway_title": "РОЗЫГРЫШ",
@@ -238,14 +244,18 @@ TEXTS = {
         "gw_no_prize": "Укажите приз!",
         "gw_success": "Розыгрыш успешно создан!",
         
-        # 🛡️ AUTOMOD TEXTS
         "automod_flood": "⚠️ Пожалуйста, не спамьте! Вы отправляете сообщения слишком быстро.",
         "automod_spam": "⚠️ Пожалуйста, не отправляйте одинаковые сообщения.",
         "automod_invite": "⚠️ Публикация ссылок-приглашений в Discord запрещена.",
         "automod_muted": "🔇 Вы были заглушены за нарушение правил сервера.",
         "automod_log_flood": "Пользователь флудил в чате",
         "automod_log_spam": "Пользователь спамил дубликатами",
-        "automod_log_invite": "Пользователь отправил инвайт-ссылку"
+        "automod_log_invite": "Пользователь отправил инвайт-ссылку",
+        
+        "clear_success": "✅ Успешно удалено **{count}** сообщений.",
+        "clear_invalid_amount": "❌ Укажите число от 1 до 100.",
+        "clear_no_permission": "🚫 У вас нет прав для использования этой команды.",
+        "clear_log": "Удалено {count} сообщений в #{channel}"
     }
 }
 
@@ -281,29 +291,21 @@ active_giveaways = {}
 # 🛡️ СИСТЕМА АВТО-МОДЕРАЦИИ
 # ============================================================
 
-# Хранилище сообщений для анти-флуда: {user_id: deque(timestamps)}
 user_message_times = defaultdict(lambda: deque(maxlen=10))
-# Хранилище последних сообщений для анти-спама: {user_id: last_message_content}
 user_last_message = {}
 
-# Регулярное выражение для поиска инвайтов в Дискорд
 DISCORD_INVITE_REGEX = re.compile(r'(https?:\/\/)?(www\.)?(discord\.gg|discord\.com\/invite|discordapp\.com\/invite)\/[a-zA-Z0-9-]+', re.IGNORECASE)
 
 async def apply_mute(member, reason, lang):
-    """Применяет роль мута к участнику"""
     try:
         mute_role = member.guild.get_role(MUTE_ROLE_ID)
         if mute_role and mute_role not in member.roles:
             await member.add_roles(mute_role)
-            
-            # Отправка предупреждения в ЛС
             if AUTOMOD_CONFIG["warn_dm"]:
                 try:
                     await member.send(f"{t('automod_muted', lang)}\n\n**Reason:** {reason}")
                 except discord.Forbidden:
-                    pass  # Не удалось отправить ЛС
-            
-            # Логирование
+                    pass
             await send_log(
                 t("log_automod", lang),
                 f"**User:** {member.mention} (ID: {member.id})\n**Action:** Muted\n**Reason:** {reason}",
@@ -315,36 +317,25 @@ async def apply_mute(member, reason, lang):
     return False
 
 async def check_automod(message):
-    """Проверяет сообщение на нарушения правил"""
-    # Игнорируем ботов, админов и владельцев
     if message.author.bot or has_permission(message.author, admin_only=True):
         return
-    
     lang = get_user_lang(message.author)
     now = datetime.utcnow()
     user_id = message.author.id
     
-    # 1. АНТИ-ИНВАЙТ
     if AUTOMOD_CONFIG["anti_invite"] and DISCORD_INVITE_REGEX.search(message.content):
         try:
             await message.delete()
         except:
             pass
-        
-        # Применяем мут за инвайт
         await apply_mute(message.author, "Posted Discord invite link", lang)
-        
-        # Предупреждение в чат (удаляется через 5 сек)
         warn_msg = await message.channel.send(f"{message.author.mention} {t('automod_invite', lang)}")
         asyncio.create_task(auto_delete_warn(warn_msg))
         return True
     
-    # 2. АНТИ-ФЛУД (проверка частоты сообщений)
     if AUTOMOD_CONFIG["flood_limit"] > 0:
         times = user_message_times[user_id]
         times.append(now)
-        
-        # Если за последние N секунд отправлено больше лимита сообщений
         if len(times) >= AUTOMOD_CONFIG["flood_limit"]:
             time_diff = (now - times[0]).total_seconds()
             if time_diff <= AUTOMOD_CONFIG["flood_time"]:
@@ -352,14 +343,11 @@ async def check_automod(message):
                     await message.delete()
                 except:
                     pass
-                
                 await apply_mute(message.author, "Flooding chat (spam)", lang)
-                
                 warn_msg = await message.channel.send(f"{message.author.mention} {t('automod_flood', lang)}")
                 asyncio.create_task(auto_delete_warn(warn_msg))
                 return True
     
-    # 3. АНТИ-СПАМ (дубликаты)
     if AUTOMOD_CONFIG["duplicate_check"]:
         last_msg = user_last_message.get(user_id)
         if last_msg and message.content.strip() == last_msg.strip():
@@ -367,23 +355,66 @@ async def check_automod(message):
                 await message.delete()
             except:
                 pass
-            
-            # Не мутим сразу за дубликат, просто удаляем и предупреждаем
             warn_msg = await message.channel.send(f"{message.author.mention} {t('automod_spam', lang)}")
             asyncio.create_task(auto_delete_warn(warn_msg))
             return True
-        
         user_last_message[user_id] = message.content
-    
     return False
 
 async def auto_delete_warn(message, delay=5):
-    """Автоматически удаляет предупреждение бота через N секунд"""
     await asyncio.sleep(delay)
     try:
         await message.delete()
     except:
         pass
+
+# ============================================================
+# 🧹 КОМАНДА /CLEAR
+# ============================================================
+
+@tree.command(name="clear", description="Clear messages in channel / Очистить сообщения в канале")
+@app_commands.describe(amount="Number of messages to delete (1-100) / Количество сообщений для удаления (1-100)")
+@app_commands.checks.has_any_role(*ADMIN_ROLE_IDS)
+async def clear_command(interaction: discord.Interaction, amount: int):
+    lang = get_user_lang(interaction.user)
+    
+    if not has_permission(interaction.user, admin_only=True):
+        await interaction.response.send_message(t("clear_no_permission", lang), ephemeral=True)
+        return
+    
+    if amount < 1 or amount > 100:
+        await interaction.response.send_message(t("clear_invalid_amount", lang), ephemeral=True)
+        return
+    
+    await interaction.response.defer(ephemeral=True)
+    
+    try:
+        deleted = await interaction.channel.purge(limit=amount + 1, check=lambda m: not m.pinned)
+        count = len(deleted) - 1  # Минус само сообщение с командой
+        
+        # Отправка подтверждения
+        await interaction.followup.send(t("clear_success", lang).format(count=count), ephemeral=True)
+        
+        # Логирование
+        await send_log(
+            t("log_clear", lang),
+            t("clear_log", lang).format(count=count, channel=interaction.channel.name) + 
+            f"\n**Moderator:** {interaction.user.mention}",
+            color=0x00FF00
+        )
+        
+    except discord.HTTPException as e:
+        await interaction.followup.send(f"❌ Error: {e}", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Unexpected error: {e}", ephemeral=True)
+
+@clear_command.error
+async def clear_command_error(interaction: discord.Interaction, error):
+    lang = get_user_lang(interaction.user)
+    if isinstance(error, app_commands.errors.MissingAnyRole):
+        await interaction.response.send_message(t("clear_no_permission", lang), ephemeral=True)
+    else:
+        await interaction.response.send_message(f"❌ Error: {error}", ephemeral=True)
 
 # ============================================================
 # ФУНКЦИИ ЛОГИРОВАНИЯ
@@ -428,12 +459,7 @@ def has_permission(member, admin_only=False):
 
 class GiveawayEnterButton(Button):
     def __init__(self, lang="en"):
-        super().__init__(
-            label=t("btn_enter_giveaway", lang),
-            style=discord.ButtonStyle.success,
-            custom_id="giveaway_enter",
-            emoji="🎁"
-        )
+        super().__init__(label=t("btn_enter_giveaway", lang), style=discord.ButtonStyle.success, custom_id="giveaway_enter", emoji="🎁")
         self.lang = lang
     
     async def callback(self, interaction: discord.Interaction):
@@ -479,138 +505,53 @@ def parse_duration(duration_str):
 
 def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
     divider = "━━━━━━━━━━━━━━━━━━━━"
-    
-    embed = discord.Embed(
-        title=t("giveaway_title", lang),
-        description=(
-            f"{divider}\n"
-            f"**{t('giveaway_prize', lang)}**\n"
-            f"> {prize}\n"
-            f"{divider}"
-        ),
-        color=0xFFD700,
-        timestamp=datetime.utcnow()
-    )
-    
+    embed = discord.Embed(title=t("giveaway_title", lang), description=f"{divider}\n**{t('giveaway_prize', lang)}**\n> {prize}\n{divider}", color=0xFFD700, timestamp=datetime.utcnow())
     embed.set_thumbnail(url=GIVEAWAY_THUMBNAIL)
-    
-    embed.add_field(
-        name=t("giveaway_end", lang),
-        value=f"<t:{int(end_time.timestamp())}:F>\n<t:{int(end_time.timestamp())}:R>",
-        inline=True
-    )
-    
-    embed.add_field(
-        name=t("giveaway_hosts", lang),
-        value=f"{host.mention}",
-        inline=True
-    )
-    
-    embed.add_field(
-        name="✨ Winners",
-        value=f"**{winners}**",
-        inline=True
-    )
-    
-    embed.add_field(
-        name=t("giveaway_participants", lang),
-        value="**0**",
-        inline=True
-    )
-    
-    embed.add_field(
-        name=t("gw_rules", lang),
-        value=t("gw_rules_val", lang),
-        inline=False
-    )
-    
+    embed.add_field(name=t("giveaway_end", lang), value=f"<t:{int(end_time.timestamp())}:F>\n<t:{int(end_time.timestamp())}:R>", inline=True)
+    embed.add_field(name=t("giveaway_hosts", lang), value=f"{host.mention}", inline=True)
+    embed.add_field(name="✨ Winners", value=f"**{winners}**", inline=True)
+    embed.add_field(name=t("giveaway_participants", lang), value="**0**", inline=True)
+    embed.add_field(name=t("gw_rules", lang), value=t("gw_rules_val", lang), inline=False)
     embed.set_footer(text=f"{t('footer', lang)} | Giveaway System")
-    
     return embed
 
 async def end_giveaway(message_id):
     if message_id not in active_giveaways:
         return
-    
     giveaway = active_giveaways[message_id]
     channel = giveaway["channel"]
     prize = giveaway["prize"]
     winners_count = giveaway["winners"]
     participants = giveaway["participants"]
     lang = giveaway["lang"]
-    
     del active_giveaways[message_id]
-    
     divider = "━━━━━━━━━━━━━━━━━━━━"
     
     if len(participants) == 0:
-        embed = discord.Embed(
-            title=t("giveaway_ended", lang),
-            description=(
-                f"{divider}\n"
-                f"**{t('giveaway_prize', lang)}**\n"
-                f"> {prize}\n"
-                f"{divider}\n\n"
-                f"{t('giveaway_no_participants', lang)}\n\n"
-                f"Try joining the next giveaway!"
-            ),
-            color=0xFF6B6B,
-            timestamp=datetime.utcnow()
-        )
+        embed = discord.Embed(title=t("giveaway_ended", lang), description=f"{divider}\n**{t('giveaway_prize', lang)}**\n> {prize}\n{divider}\n\n{t('giveaway_no_participants', lang)}\n\nTry joining the next giveaway!", color=0xFF6B6B, timestamp=datetime.utcnow())
         embed.set_thumbnail(url=GIVEAWAY_THUMBNAIL)
         embed.set_footer(text=t("footer", lang))
-        
         try:
             msg = await channel.fetch_message(message_id)
             await msg.edit(embed=embed, view=None)
         except:
             pass
-        
-        await log_giveaway_action(
-            t("giveaway_ended_log", lang),
-            f"Prize: {prize}\nResult: No participants",
-            color=0xFF6B6B
-        )
+        await log_giveaway_action(t("giveaway_ended_log", lang), f"Prize: {prize}\nResult: No participants", color=0xFF6B6B)
         return
     
     selected_winners = random.sample(participants, min(winners_count, len(participants)))
     winners_mention = ", ".join([f"<@{winner_id}>" for winner_id in selected_winners])
-    
-    embed = discord.Embed(
-        title=t("giveaway_ended", lang),
-        description=(
-            f"{divider}\n"
-            f"**{t('giveaway_prize', lang)}**\n"
-            f"> {prize}\n"
-            f"{divider}\n\n"
-            f"**{t('giveaway_winner', lang)}:**\n{winners_mention}\n\n"
-            f"{t('gw_congrats', lang)}"
-        ),
-        color=0x00FFA3,
-        timestamp=datetime.utcnow()
-    )
-    
+    embed = discord.Embed(title=t("giveaway_ended", lang), description=f"{divider}\n**{t('giveaway_prize', lang)}**\n> {prize}\n{divider}\n\n**{t('giveaway_winner', lang)}:**\n{winners_mention}\n\n{t('gw_congrats', lang)}", color=0x00FFA3, timestamp=datetime.utcnow())
     embed.set_thumbnail(url=GIVEAWAY_THUMBNAIL)
-    embed.add_field(
-        name=t("gw_stats", lang),
-        value=t("gw_stats_val", lang).format(total=len(participants), winners=len(selected_winners)),
-        inline=False
-    )
-    
+    embed.add_field(name=t("gw_stats", lang), value=t("gw_stats_val", lang).format(total=len(participants), winners=len(selected_winners)), inline=False)
     embed.set_footer(text=f"{t('footer', lang)} | Results Verified")
-    
     try:
         msg = await channel.fetch_message(message_id)
         await msg.edit(embed=embed, view=None)
         await channel.send(f"🎉 Congratulations: {winners_mention}!")
     except Exception as e:
         print(f"Error ending giveaway: {e}")
-    
-    await log_giveaway_action(
-        t("giveaway_winner_log", lang),
-        f"Prize: {prize}\nWinners: {winners_mention}\nParticipants: {len(participants)}",
-        color=0x00FFA3
-    )
+    await log_giveaway_action(t("giveaway_winner_log", lang), f"Prize: {prize}\nWinners: {winners_mention}\nParticipants: {len(participants)}", color=0x00FFA3)
 
 async def scheduled_end_giveaway(message_id, end_time):
     wait_time = (end_time - datetime.utcnow()).total_seconds()
@@ -623,51 +564,26 @@ async def scheduled_end_giveaway(message_id, end_time):
 # ============================================================
 
 @tree.command(name="giveaway", description="Create a new giveaway / Создать розыгрыш")
-@app_commands.describe(
-    duration="Duration (e.g., 1h, 24h, 7d) / Длительность (например, 1h, 24h, 7d)",
-    winners="Number of winners (1-10) / Количество победителей (1-10)",
-    prize="Prize description / Описание приза"
-)
+@app_commands.describe(duration="Duration (e.g., 1h, 24h, 7d)", winners="Number of winners (1-10)", prize="Prize description")
 @app_commands.checks.has_any_role(*ADMIN_ROLE_IDS)
 async def giveaway_command(interaction: discord.Interaction, duration: str, winners: int, prize: str):
     lang = get_user_lang(interaction.user)
-    
     if not has_permission(interaction.user, admin_only=True):
         await interaction.response.send_message(t("no_permission", lang), ephemeral=True)
         return
-    
     if winners < 1 or winners > 10:
         await interaction.response.send_message(t("gw_invalid_winners", lang), ephemeral=True)
         return
-    
     end_time = parse_duration(duration)
     if not end_time:
         await interaction.response.send_message(t("gw_invalid_duration", lang), ephemeral=True)
         return
-    
     embed = create_giveaway_embed(prize, end_time, winners, interaction.user, lang)
     view = GiveawayView(lang=lang)
-    
     giveaway_msg = await interaction.channel.send(embed=embed, view=view)
-    
-    active_giveaways[giveaway_msg.id] = {
-        "prize": prize,
-        "end_time": end_time,
-        "winners": winners,
-        "host": interaction.user.id,
-        "participants": [],
-        "channel": interaction.channel,
-        "lang": lang
-    }
-    
-    await log_giveaway_action(
-        t("giveaway_created_log", lang),
-        f"Prize: {prize}\nDuration: {duration}\nWinners: {winners}\nChannel: #{interaction.channel.name}",
-        color=0x00FF00
-    )
-    
+    active_giveaways[giveaway_msg.id] = {"prize": prize, "end_time": end_time, "winners": winners, "host": interaction.user.id, "participants": [], "channel": interaction.channel, "lang": lang}
+    await log_giveaway_action(t("giveaway_created_log", lang), f"Prize: {prize}\nDuration: {duration}\nWinners: {winners}\nChannel: #{interaction.channel.name}", color=0x00FF00)
     await interaction.response.send_message(t("gw_success", lang), ephemeral=True)
-    
     asyncio.create_task(scheduled_end_giveaway(giveaway_msg.id, end_time))
 
 @giveaway_command.error
@@ -686,7 +602,6 @@ class TicketCreateButton(Button):
     def __init__(self, lang="en"):
         super().__init__(label=t("btn_create_ticket", lang), style=discord.ButtonStyle.primary, custom_id="ticket_create")
         self.lang = lang
-    
     async def callback(self, interaction: discord.Interaction):
         lang = get_user_lang(interaction.user)
         guild = interaction.guild
@@ -695,10 +610,7 @@ class TicketCreateButton(Button):
             if channel.name.startswith(f"ticket-{member.name}") and channel.category and channel.category.id == TICKET_CATEGORY_ID:
                 await interaction.response.send_message(t("ticket_exists", lang), ephemeral=True)
                 return
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(read_messages=False),
-            member: discord.PermissionOverwrite(read_messages=True, send_messages=True),
-        }
+        overwrites = {guild.default_role: discord.PermissionOverwrite(read_messages=False), member: discord.PermissionOverwrite(read_messages=True, send_messages=True)}
         for role_id in ADMIN_ROLE_IDS:
             role = guild.get_role(role_id)
             if role:
@@ -712,18 +624,8 @@ class TicketCreateButton(Button):
             if not category:
                 await interaction.response.send_message(t("category_not_found", lang), ephemeral=True)
                 return
-            channel = await guild.create_text_channel(
-                name=f"ticket-{member.name}",
-                category=category,
-                overwrites=overwrites,
-                topic=f"Ticket for {member.mention} | Created: {datetime.now().strftime('%d.%m.%Y %H:%M')}"
-            )
-            embed = discord.Embed(
-                title=t("ticket_welcome", lang),
-                description=t("ticket_welcome_desc", lang).format(mention=member.mention),
-                color=0x5865F2,
-                timestamp=datetime.utcnow()
-            )
+            channel = await guild.create_text_channel(name=f"ticket-{member.name}", category=category, overwrites=overwrites, topic=f"Ticket for {member.mention} | Created: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+            embed = discord.Embed(title=t("ticket_welcome", lang), description=t("ticket_welcome_desc", lang).format(mention=member.mention), color=0x5865F2, timestamp=datetime.utcnow())
             embed.set_footer(text=f"Ticket ID: {channel.id} - {t('footer', lang)}")
             view = TicketControlView(lang=lang)
             await channel.send(embed=embed, view=view)
@@ -737,7 +639,6 @@ class TicketCloseButton(Button):
     def __init__(self, lang="en"):
         super().__init__(label=t("btn_close_ticket", lang), style=discord.ButtonStyle.danger, custom_id="ticket_close")
         self.lang = lang
-    
     async def callback(self, interaction: discord.Interaction):
         lang = get_user_lang(interaction.user)
         if not has_permission(interaction.user, admin_only=False):
@@ -753,7 +654,6 @@ class ConfirmCloseButton(Button):
         super().__init__(label=label, style=style, custom_id=f"ticket_close_{'yes' if confirm else 'no'}")
         self.confirm = confirm
         self.lang = lang
-    
     async def callback(self, interaction: discord.Interaction):
         if self.confirm:
             channel_name = interaction.channel.name
@@ -791,7 +691,6 @@ class LangButton(Button):
         super().__init__(label=label, emoji=emoji, style=style, custom_id=f"lang_{role_id}")
         self.role_id = role_id
         self.lang = lang
-    
     async def callback(self, interaction: discord.Interaction):
         lang = get_user_lang(interaction.user)
         member = interaction.user
@@ -857,12 +756,13 @@ async def on_ready():
     client.add_view(TicketPanelView())
     client.add_view(LangView())
     client.add_view(GiveawayView())
-    print("Aeternis Core v4.0 (AutoMod) started")
+    print("Aeternis Core v4.1 (AutoMod + Clear) started")
     print(f"Bot: {client.user.name}")
     print(f"ID: {client.user.id}")
     print(f"Languages: EN / RU")
     print(f"Log Channel: {LOG_CHANNEL_ID}")
     print(f"Mute Role ID: {MUTE_ROLE_ID}")
+    print(f"Slash Commands: /giveaway, /clear")
     print("-------------------------------")
 
 @client.event
@@ -877,14 +777,9 @@ async def on_member_remove(member):
 async def on_message(message):
     if message.author == client.user:
         return
-    
-    # 🛡️ ПРОВЕРКА АВТО-МОДЕРАЦИИ
-    # Если нарушение найдено, функция вернет True и мы прервем обработку
     if await check_automod(message):
-        return  # Прерываем дальнейшую обработку сообщения
-    
+        return
     lang = get_user_lang(message.author)
-    
     if message.content.strip() == "!welcome":
         embed = create_welcome_embed(lang)
         await message.channel.send(embed=embed)
@@ -892,7 +787,6 @@ async def on_message(message):
             await message.delete()
         except:
             pass
-    
     if message.content.strip() == "!roles":
         embed = create_roles_embed(lang)
         view = LangView(lang=lang)
@@ -901,7 +795,6 @@ async def on_message(message):
             await message.delete()
         except:
             pass
-    
     if message.content.strip() == "!tickets":
         if not has_permission(message.author, admin_only=False):
             await message.reply(t("admin_panel_only", lang), ephemeral=True)
@@ -913,7 +806,6 @@ async def on_message(message):
             await message.delete()
         except:
             pass
-    
     if message.content.strip() == "!close":
         if not has_permission(message.author, admin_only=False):
             await message.reply(t("no_permission", lang), ephemeral=True)
