@@ -3,15 +3,17 @@
 """
 Aeternis Core - Official Discord Bot
 Project: Aeternis MU Online
-Version: 3.2 (Slash Commands + Thumbnail Giveaway)
+Version: 4.0 (AutoMod System)
 """
 
 import os
 import discord
+import re
 from dotenv import load_dotenv
 from discord.ui import Button, View
 from discord import app_commands
 from datetime import datetime, timedelta
+from collections import defaultdict, deque
 import asyncio
 import random
 
@@ -38,7 +40,17 @@ LANGUAGE_ROLES = {
 
 TICKET_CATEGORY_ID = 1487369421440946236
 LOG_CHANNEL_ID = 1487390220830900344
+MUTE_ROLE_ID = 1487360998946898002  # 🚫 Роль мута
 GIVEAWAY_THUMBNAIL = "https://i.imgur.com/7K8oSFK.png"
+
+# ⚙️ НАСТРОЙКИ АВТО-МОДЕРАЦИИ
+AUTOMOD_CONFIG = {
+    "flood_limit": 5,          # Кол-во сообщений
+    "flood_time": 5,           # За сколько секунд (порог срабатывания)
+    "duplicate_check": True,   # Блокировать дубликаты сообщений
+    "anti_invite": True,       # Блокировать инвайты в Дискорд
+    "warn_dm": True            # Отправлять предупреждение в ЛС
+}
 
 # ============================================================
 # СИСТЕМА ЛОКАЛИЗАЦИИ
@@ -104,6 +116,7 @@ TEXTS = {
         "log_member_leave": "Member Left",
         "log_ticket_create": "Ticket Created",
         "log_ticket_close": "Ticket Closed",
+        "log_automod": "AutoMod Action",
         
         "btn_enter_giveaway": "Enter Giveaway",
         "giveaway_title": "🎉 NEW GIVEAWAY | Новый розыгрыш",
@@ -128,7 +141,16 @@ TEXTS = {
         "gw_invalid_duration": "Invalid duration! Use: 1h, 24h, 7d, etc.",
         "gw_invalid_winners": "Invalid number of winners! Use a number between 1 and 10.",
         "gw_no_prize": "Please specify a prize!",
-        "gw_success": "Giveaway created successfully!"
+        "gw_success": "Giveaway created successfully!",
+        
+        # 🛡️ AUTOMOD TEXTS
+        "automod_flood": "⚠️ Please slow down! You are sending messages too fast.",
+        "automod_spam": "⚠️ Please do not send duplicate messages.",
+        "automod_invite": "⚠️ Posting Discord invite links is not allowed.",
+        "automod_muted": "🔇 You have been muted for violating server rules.",
+        "automod_log_flood": "User flooded chat",
+        "automod_log_spam": "User spammed duplicate messages",
+        "automod_log_invite": "User posted Discord invite link"
     },
     "ru": {
         "welcome_title": "ДОБРО ПОЖАЛОВАТЬ В AETERNIS",
@@ -189,6 +211,7 @@ TEXTS = {
         "log_member_leave": "Пользователь вышел",
         "log_ticket_create": "Тикет создан",
         "log_ticket_close": "Тикет закрыт",
+        "log_automod": "Действие Авто-мода",
         
         "btn_enter_giveaway": "Участвовать",
         "giveaway_title": "РОЗЫГРЫШ",
@@ -213,7 +236,16 @@ TEXTS = {
         "gw_invalid_duration": "Неверное время! Используйте: 1h, 24h, 7d и т.д.",
         "gw_invalid_winners": "Неверное число победителей! Используйте число от 1 до 10.",
         "gw_no_prize": "Укажите приз!",
-        "gw_success": "Розыгрыш успешно создан!"
+        "gw_success": "Розыгрыш успешно создан!",
+        
+        # 🛡️ AUTOMOD TEXTS
+        "automod_flood": "⚠️ Пожалуйста, не спамьте! Вы отправляете сообщения слишком быстро.",
+        "automod_spam": "⚠️ Пожалуйста, не отправляйте одинаковые сообщения.",
+        "automod_invite": "⚠️ Публикация ссылок-приглашений в Discord запрещена.",
+        "automod_muted": "🔇 Вы были заглушены за нарушение правил сервера.",
+        "automod_log_flood": "Пользователь флудил в чате",
+        "automod_log_spam": "Пользователь спамил дубликатами",
+        "automod_log_invite": "Пользователь отправил инвайт-ссылку"
     }
 }
 
@@ -244,6 +276,114 @@ intents.guilds = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 active_giveaways = {}
+
+# ============================================================
+# 🛡️ СИСТЕМА АВТО-МОДЕРАЦИИ
+# ============================================================
+
+# Хранилище сообщений для анти-флуда: {user_id: deque(timestamps)}
+user_message_times = defaultdict(lambda: deque(maxlen=10))
+# Хранилище последних сообщений для анти-спама: {user_id: last_message_content}
+user_last_message = {}
+
+# Регулярное выражение для поиска инвайтов в Дискорд
+DISCORD_INVITE_REGEX = re.compile(r'(https?:\/\/)?(www\.)?(discord\.gg|discord\.com\/invite|discordapp\.com\/invite)\/[a-zA-Z0-9-]+', re.IGNORECASE)
+
+async def apply_mute(member, reason, lang):
+    """Применяет роль мута к участнику"""
+    try:
+        mute_role = member.guild.get_role(MUTE_ROLE_ID)
+        if mute_role and mute_role not in member.roles:
+            await member.add_roles(mute_role)
+            
+            # Отправка предупреждения в ЛС
+            if AUTOMOD_CONFIG["warn_dm"]:
+                try:
+                    await member.send(f"{t('automod_muted', lang)}\n\n**Reason:** {reason}")
+                except discord.Forbidden:
+                    pass  # Не удалось отправить ЛС
+            
+            # Логирование
+            await send_log(
+                t("log_automod", lang),
+                f"**User:** {member.mention} (ID: {member.id})\n**Action:** Muted\n**Reason:** {reason}",
+                color=0xFF0000
+            )
+            return True
+    except Exception as e:
+        print(f"Mute error: {e}")
+    return False
+
+async def check_automod(message):
+    """Проверяет сообщение на нарушения правил"""
+    # Игнорируем ботов, админов и владельцев
+    if message.author.bot or has_permission(message.author, admin_only=True):
+        return
+    
+    lang = get_user_lang(message.author)
+    now = datetime.utcnow()
+    user_id = message.author.id
+    
+    # 1. АНТИ-ИНВАЙТ
+    if AUTOMOD_CONFIG["anti_invite"] and DISCORD_INVITE_REGEX.search(message.content):
+        try:
+            await message.delete()
+        except:
+            pass
+        
+        # Применяем мут за инвайт
+        await apply_mute(message.author, "Posted Discord invite link", lang)
+        
+        # Предупреждение в чат (удаляется через 5 сек)
+        warn_msg = await message.channel.send(f"{message.author.mention} {t('automod_invite', lang)}")
+        asyncio.create_task(auto_delete_warn(warn_msg))
+        return True
+    
+    # 2. АНТИ-ФЛУД (проверка частоты сообщений)
+    if AUTOMOD_CONFIG["flood_limit"] > 0:
+        times = user_message_times[user_id]
+        times.append(now)
+        
+        # Если за последние N секунд отправлено больше лимита сообщений
+        if len(times) >= AUTOMOD_CONFIG["flood_limit"]:
+            time_diff = (now - times[0]).total_seconds()
+            if time_diff <= AUTOMOD_CONFIG["flood_time"]:
+                try:
+                    await message.delete()
+                except:
+                    pass
+                
+                await apply_mute(message.author, "Flooding chat (spam)", lang)
+                
+                warn_msg = await message.channel.send(f"{message.author.mention} {t('automod_flood', lang)}")
+                asyncio.create_task(auto_delete_warn(warn_msg))
+                return True
+    
+    # 3. АНТИ-СПАМ (дубликаты)
+    if AUTOMOD_CONFIG["duplicate_check"]:
+        last_msg = user_last_message.get(user_id)
+        if last_msg and message.content.strip() == last_msg.strip():
+            try:
+                await message.delete()
+            except:
+                pass
+            
+            # Не мутим сразу за дубликат, просто удаляем и предупреждаем
+            warn_msg = await message.channel.send(f"{message.author.mention} {t('automod_spam', lang)}")
+            asyncio.create_task(auto_delete_warn(warn_msg))
+            return True
+        
+        user_last_message[user_id] = message.content
+    
+    return False
+
+async def auto_delete_warn(message, delay=5):
+    """Автоматически удаляет предупреждение бота через N секунд"""
+    await asyncio.sleep(delay)
+    try:
+        await message.delete()
+    except:
+        pass
 
 # ============================================================
 # ФУНКЦИИ ЛОГИРОВАНИЯ
@@ -352,7 +492,6 @@ def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
         timestamp=datetime.utcnow()
     )
     
-    # 🖼️ АВАТАРКА ЭМБЕДА (вместо баннера)
     embed.set_thumbnail(url=GIVEAWAY_THUMBNAIL)
     
     embed.add_field(
@@ -718,12 +857,12 @@ async def on_ready():
     client.add_view(TicketPanelView())
     client.add_view(LangView())
     client.add_view(GiveawayView())
-    print("Aeternis Core v3.2 (Thumbnail Giveaway) started")
+    print("Aeternis Core v4.0 (AutoMod) started")
     print(f"Bot: {client.user.name}")
     print(f"ID: {client.user.id}")
     print(f"Languages: EN / RU")
     print(f"Log Channel: {LOG_CHANNEL_ID}")
-    print(f"Slash Commands: /giveaway")
+    print(f"Mute Role ID: {MUTE_ROLE_ID}")
     print("-------------------------------")
 
 @client.event
@@ -738,6 +877,12 @@ async def on_member_remove(member):
 async def on_message(message):
     if message.author == client.user:
         return
+    
+    # 🛡️ ПРОВЕРКА АВТО-МОДЕРАЦИИ
+    # Если нарушение найдено, функция вернет True и мы прервем обработку
+    if await check_automod(message):
+        return  # Прерываем дальнейшую обработку сообщения
+    
     lang = get_user_lang(message.author)
     
     if message.content.strip() == "!welcome":
