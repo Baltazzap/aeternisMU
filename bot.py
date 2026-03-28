@@ -124,7 +124,7 @@ TEXTS = {
         "gw_rules_val": "- React to enter\n- Must be in server\n- Winner announced automatically",
         "gw_stats": "Statistics",
         "gw_stats_val": "- Total participants: **{total}**\n- Winners selected: **{winners}**\n- Fair random selection: Yes",
-        "gw_congrats": "Congratulations! Check your DMs for instructions.",
+        "gw_congrats": "🎉 Congratulations! Create a support ticket.",
         "gw_invalid_duration": "Invalid duration! Use: 1h, 24h, 7d, etc.",
         "gw_invalid_winners": "Invalid number of winners! Use a number between 1 and 10.",
         "gw_no_prize": "Please specify a prize!",
@@ -463,7 +463,7 @@ async def end_giveaway(message_id):
     try:
         msg = await channel.fetch_message(message_id)
         await msg.edit(embed=embed, view=None)
-        await channel.send(f"Congratulations: {winners_mention}!")
+        await channel.send(f"🎉 Congratulations: {winners_mention}!")
     except Exception as e:
         print(f"Error ending giveaway: {e}")
     
