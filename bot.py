@@ -3,7 +3,7 @@
 """
 Aeternis Core - Official Discord Bot
 Project: Aeternis MU Online
-Version: 5.0 (English Only)
+Version: 5.1 (Temporary Mute System)
 """
 
 import os
@@ -41,7 +41,8 @@ AUTOMOD_CONFIG = {
     "flood_time": 5,
     "duplicate_check": True,
     "anti_invite": True,
-    "warn_dm": True
+    "warn_dm": True,
+    "automute_duration": 60  # Автомут на 60 минут при нарушении
 }
 
 # ============================================================
@@ -61,6 +62,7 @@ intents.guilds = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 active_giveaways = {}
+active_mutes = {}  # {user_id: end_time}
 
 # ============================================================
 # 🛡️ AUTOMOD SYSTEM
@@ -71,25 +73,102 @@ user_last_message = {}
 
 DISCORD_INVITE_REGEX = re.compile(r'(https?:\/\/)?(www\.)?(discord\.gg|discord\.com\/invite|discordapp\.com\/invite)\/[a-zA-Z0-9-]+', re.IGNORECASE)
 
-async def apply_mute(member, reason):
+def parse_mute_duration(duration_str):
+    """Парсит длительность мута (10m, 1h, 24h, 7d)"""
+    try:
+        if duration_str.endswith('m'):
+            minutes = int(duration_str[:-1])
+            return timedelta(minutes=minutes)
+        elif duration_str.endswith('h'):
+            hours = int(duration_str[:-1])
+            return timedelta(hours=hours)
+        elif duration_str.endswith('d'):
+            days = int(duration_str[:-1])
+            return timedelta(days=days)
+        else:
+            return None
+    except:
+        return None
+
+async def apply_mute(member, reason, duration_minutes, lang="en"):
+    """Выдаёт временный мут с авто-снятием"""
     try:
         mute_role = member.guild.get_role(MUTE_ROLE_ID)
-        if mute_role and mute_role not in member.roles:
+        if not mute_role:
+            return False
+        
+        if mute_role in member.roles:
+            # Продлеваем существующий мут
+            pass
+        else:
             await member.add_roles(mute_role)
-            if AUTOMOD_CONFIG["warn_dm"]:
-                try:
-                    await member.send(f"🔇 You have been muted for violating server rules.\n\n**Reason:** {reason}")
-                except discord.Forbidden:
-                    pass
-            await send_log(
-                "AutoMod Action",
-                f"**User:** {member.mention} (ID: {member.id})\n**Action:** Muted\n**Reason:** {reason}",
-                color=0xFF0000
-            )
-            return True
+        
+        # Рассчитываем время снятия мута
+        mute_end = datetime.utcnow() + timedelta(minutes=duration_minutes)
+        active_mutes[member.id] = mute_end
+        
+        # Отправка предупреждения в ЛС с указанием времени
+        if AUTOMOD_CONFIG["warn_dm"]:
+            try:
+                await member.send(
+                    f"🔇 **You have been muted!**\n\n"
+                    f"**Reason:** {reason}\n"
+                    f"**Duration:** {duration_minutes} minutes\n"
+                    f"**Unmute at:** <t:{int(mute_end.timestamp())}:F>\n\n"
+                    f"You will be automatically unmuted after the time expires."
+                )
+            except discord.Forbidden:
+                pass
+        
+        # Логирование
+        await send_log(
+            "🔇 Temporary Mute",
+            f"**User:** {member.mention} (ID: {member.id})\n"
+            f"**Reason:** {reason}\n"
+            f"**Duration:** {duration_minutes} minutes\n"
+            f"**Unmute at:** <t:{int(mute_end.timestamp())}:F>",
+            color=0xFF0000
+        )
+        
+        # Планируем авто-размут
+        asyncio.create_task(auto_unmute(member, mute_end, reason))
+        
+        return True
     except Exception as e:
         print(f"Mute error: {e}")
-    return False
+        return False
+
+async def auto_unmute(member, mute_end, reason):
+    """Автоматически снимает мут по истечении времени"""
+    wait_time = (mute_end - datetime.utcnow()).total_seconds()
+    if wait_time > 0:
+        await asyncio.sleep(wait_time)
+    
+    # Проверяем, всё ещё ли актуален мут
+    if member.id in active_mutes and active_mutes[member.id] == mute_end:
+        try:
+            mute_role = member.guild.get_role(MUTE_ROLE_ID)
+            if mute_role and mute_role in member.roles:
+                await member.remove_roles(mute_role)
+                
+                # Уведомление о разmute
+                try:
+                    await member.send("✅ **Your mute has been lifted!**\n\nYou can now send messages and join voice channels again.")
+                except:
+                    pass
+                
+                # Лог
+                await send_log(
+                    "✅ Auto Unmute",
+                    f"**User:** {member.mention} (ID: {member.id})\n"
+                    f"**Original Reason:** {reason}\n"
+                    f"**Mute Duration:** Expired",
+                    color=0x00FF00
+                )
+        except Exception as e:
+            print(f"Unmute error: {e}")
+        finally:
+            del active_mutes[member.id]
 
 async def check_automod(message):
     if message.author.bot or has_permission(message.author, admin_only=True):
@@ -102,8 +181,8 @@ async def check_automod(message):
             await message.delete()
         except:
             pass
-        await apply_mute(message.author, "Posted Discord invite link")
-        warn_msg = await message.channel.send(f"{message.author.mention} ⚠️ Posting Discord invite links is not allowed.")
+        await apply_mute(message.author, "Posted Discord invite link", AUTOMOD_CONFIG["automute_duration"])
+        warn_msg = await message.channel.send(f"{message.author.mention} ⚠️ Posting Discord invite links is not allowed. You have been muted for {AUTOMOD_CONFIG['automute_duration']} minutes.")
         asyncio.create_task(auto_delete_warn(warn_msg))
         return True
     
@@ -117,8 +196,8 @@ async def check_automod(message):
                     await message.delete()
                 except:
                     pass
-                await apply_mute(message.author, "Flooding chat (spam)")
-                warn_msg = await message.channel.send(f"{message.author.mention} ⚠️ Please slow down! You are sending messages too fast.")
+                await apply_mute(message.author, "Flooding chat (spam)", AUTOMOD_CONFIG["automute_duration"])
+                warn_msg = await message.channel.send(f"{message.author.mention} ⚠️ Please slow down! You have been muted for {AUTOMOD_CONFIG['automute_duration']} minutes.")
                 asyncio.create_task(auto_delete_warn(warn_msg))
                 return True
     
@@ -208,6 +287,105 @@ async def clear_command(interaction: discord.Interaction, amount: int):
 async def clear_command_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.MissingAnyRole):
         await interaction.response.send_message("🚫 You don't have permission to use this command.", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"❌ Error: {error}", ephemeral=True)
+
+# ============================================================
+# 🔇 MUTE COMMAND
+# ============================================================
+
+@tree.command(name="mute", description="Temporarily mute a user")
+@app_commands.describe(
+    member="User to mute",
+    duration="Duration (e.g., 10m, 1h, 24h)",
+    reason="Reason for mute"
+)
+@app_commands.checks.has_any_role(*ADMIN_ROLE_IDS)
+async def mute_command(interaction: discord.Interaction, member: discord.Member, duration: str, reason: str):
+    if not has_permission(interaction.user, admin_only=True):
+        await interaction.response.send_message("🚫 Insufficient permissions!", ephemeral=True)
+        return
+    
+    if member.bot:
+        await interaction.response.send_message("❌ Cannot mute bots!", ephemeral=True)
+        return
+    
+    if has_permission(member, admin_only=False):
+        await interaction.response.send_message("❌ Cannot mute staff members!", ephemeral=True)
+        return
+    
+    mute_duration = parse_mute_duration(duration)
+    if not mute_duration:
+        await interaction.response.send_message("❌ Invalid duration! Use: 10m, 1h, 24h, 7d", ephemeral=True)
+        return
+    
+    duration_minutes = int(mute_duration.total_seconds() / 60)
+    
+    await interaction.response.defer(ephemeral=True)
+    
+    success = await apply_mute(member, reason, duration_minutes)
+    
+    if success:
+        mute_end = datetime.utcnow() + mute_duration
+        await interaction.followup.send(
+            f"✅ **{member.mention}** has been muted!\n\n"
+            f"**Duration:** {duration}\n"
+            f"**Reason:** {reason}\n"
+            f"**Unmute at:** <t:{int(mute_end.timestamp())}:F>",
+            ephemeral=True
+        )
+    else:
+        await interaction.followup.send("❌ Failed to mute user!", ephemeral=True)
+
+@mute_command.error
+async def mute_command_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.errors.MissingAnyRole):
+        await interaction.response.send_message("🚫 Insufficient permissions!", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"❌ Error: {error}", ephemeral=True)
+
+# ============================================================
+# 🔊 UNMUTE COMMAND
+# ============================================================
+
+@tree.command(name="unmute", description="Manually unmute a user")
+@app_commands.describe(member="User to unmute", reason="Reason for unmute")
+@app_commands.checks.has_any_role(*ADMIN_ROLE_IDS)
+async def unmute_command(interaction: discord.Interaction, member: discord.Member, reason: str = "No reason provided"):
+    if not has_permission(interaction.user, admin_only=True):
+        await interaction.response.send_message("🚫 Insufficient permissions!", ephemeral=True)
+        return
+    
+    mute_role = interaction.guild.get_role(MUTE_ROLE_ID)
+    
+    if not mute_role or mute_role not in member.roles:
+        await interaction.response.send_message("❌ User is not muted!", ephemeral=True)
+        return
+    
+    await member.remove_roles(mute_role)
+    
+    if member.id in active_mutes:
+        del active_mutes[member.id]
+    
+    try:
+        await member.send(f"✅ **Your mute has been lifted!**\n\n**Reason:** {reason}")
+    except:
+        pass
+    
+    await send_log(
+        "✅ Manual Unmute",
+        f"**User:** {member.mention} (ID: {member.id})\n"
+        f"**Moderator:** {interaction.user.mention}\n"
+        f"**Reason:** {reason}",
+        color=0x00FF00
+    )
+    
+    await interaction.response.send_message(f"✅ **{member.mention}** has been unmuted!", ephemeral=True)
+
+@unmute_command.error
+async def unmute_command_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.errors.MissingAnyRole):
+        await interaction.response.send_message("🚫 Insufficient permissions!", ephemeral=True)
     else:
         await interaction.response.send_message(f"❌ Error: {error}", ephemeral=True)
 
@@ -556,14 +734,14 @@ async def on_ready():
     client.add_view(TicketPanelView())
     client.add_view(LangView())
     client.add_view(GiveawayView())
-    print("Aeternis Core v5.0 (English Only) started")
+    print("Aeternis Core v5.1 (Temporary Mute) started")
     print(f"Bot: {client.user.name}")
     print(f"ID: {client.user.id}")
     print(f"Log Channel: {LOG_CHANNEL_ID}")
     print(f"Welcome Channel: {WELCOME_CHANNEL_ID}")
     print(f"Rules Channel: {RULES_CHANNEL_ID}")
     print(f"Mute Role ID: {MUTE_ROLE_ID}")
-    print(f"Slash Commands: /giveaway, /clear")
+    print(f"Slash Commands: /giveaway, /clear, /mute, /unmute")
     print("-------------------------------")
 
 @client.event
@@ -573,6 +751,8 @@ async def on_member_join(member):
 
 @client.event
 async def on_member_remove(member):
+    if member.id in active_mutes:
+        del active_mutes[member.id]
     await send_log("Member Left", f"User: {member.name}\nID: {member.id}", color=0xFF0000)
 
 @client.event
