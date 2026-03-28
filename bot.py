@@ -3,13 +3,14 @@
 """
 Aeternis Core - Official Discord Bot
 Project: Aeternis MU Online
-Version: 3.1 (Clean Giveaway System)
+Version: 3.2 (Slash Commands)
 """
 
 import os
 import discord
 from dotenv import load_dotenv
 from discord.ui import Button, View
+from discord import app_commands
 from datetime import datetime, timedelta
 import asyncio
 import random
@@ -40,7 +41,7 @@ LOG_CHANNEL_ID = 1487390220830900344
 GIVEAWAY_BANNER = "https://i.imgur.com/Nce6GzV.jpeg"
 
 # ============================================================
-# СИСТЕМА ЛОКАЛИЗАЦИИ (ЧИСТЫЕ ЭМОДЗИ)
+# СИСТЕМА ЛОКАЛИЗАЦИИ
 # ============================================================
 
 TEXTS = {
@@ -119,15 +120,15 @@ TEXTS = {
         "giveaway_ended_log": "Giveaway ended",
         "giveaway_created_log": "Giveaway created",
         "giveaway_winner_log": "Giveaway winner selected",
-        "gw_command_usage": "Usage: !giveaway <duration> <winners> <prize>\nExample: !giveaway 1h 2 1000 Zen",
-        "gw_invalid_duration": "Invalid duration! Use: 1h, 24h, 7d, etc.",
-        "gw_invalid_winners": "Invalid number of winners! Use a number between 1 and 10.",
-        "gw_no_prize": "Please specify a prize!",
         "gw_rules": "Rules",
         "gw_rules_val": "- React to enter\n- Must be in server\n- Winner announced automatically",
         "gw_stats": "Statistics",
         "gw_stats_val": "- Total participants: **{total}**\n- Winners selected: **{winners}**\n- Fair random selection: Yes",
-        "gw_congrats": "Congratulations! Check your DMs for instructions."
+        "gw_congrats": "Congratulations! Check your DMs for instructions.",
+        "gw_invalid_duration": "Invalid duration! Use: 1h, 24h, 7d, etc.",
+        "gw_invalid_winners": "Invalid number of winners! Use a number between 1 and 10.",
+        "gw_no_prize": "Please specify a prize!",
+        "gw_success": "Giveaway created successfully!"
     },
     "ru": {
         "welcome_title": "ДОБРО ПОЖАЛОВАТЬ В AETERNIS",
@@ -204,15 +205,15 @@ TEXTS = {
         "giveaway_ended_log": "Розыгрыш завершен",
         "giveaway_created_log": "Розыгрыш создан",
         "giveaway_winner_log": "Победитель розыгрыша выбран",
-        "gw_command_usage": "Использование: !giveaway <время> <победители> <приз>\nПример: !giveaway 1h 2 1000 Zen",
-        "gw_invalid_duration": "Неверное время! Используйте: 1h, 24h, 7d и т.д.",
-        "gw_invalid_winners": "Неверное число победителей! Используйте число от 1 до 10.",
-        "gw_no_prize": "Укажите приз!",
         "gw_rules": "Правила",
         "gw_rules_val": "- Нажмите для участия\n- Быть на сервере\n- Авто-выбор победителя",
         "gw_stats": "Статистика",
         "gw_stats_val": "- Всего участников: **{total}**\n- Победителей: **{winners}**\n- Честный выбор: Да",
-        "gw_congrats": "Поздравляем! Проверьте ЛС для инструкций."
+        "gw_congrats": "Поздравляем! Проверьте ЛС для инструкций.",
+        "gw_invalid_duration": "Неверное время! Используйте: 1h, 24h, 7d и т.д.",
+        "gw_invalid_winners": "Неверное число победителей! Используйте число от 1 до 10.",
+        "gw_no_prize": "Укажите приз!",
+        "gw_success": "Розыгрыш успешно создан!"
     }
 }
 
@@ -241,6 +242,7 @@ intents.members = True
 intents.guilds = True
 
 client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 active_giveaways = {}
 
 # ============================================================
@@ -281,7 +283,7 @@ def has_permission(member, admin_only=False):
     return False
 
 # ============================================================
-# КЛАССЫ ДЛЯ РОЗЫГРЫШЕЙ (БЕЗ КНОПКИ LEAVE)
+# КЛАССЫ ДЛЯ РОЗЫГРЫШЕЙ
 # ============================================================
 
 class GiveawayEnterButton(Button):
@@ -336,8 +338,6 @@ def parse_duration(duration_str):
         return None
 
 def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
-    """Создаёт чистый Embed для розыгрыша без дублирования эмодзи"""
-    
     divider = "━━━━━━━━━━━━━━━━━━━━"
     
     embed = discord.Embed(
@@ -389,8 +389,6 @@ def create_giveaway_embed(prize, end_time, winners, host, lang="en"):
     return embed
 
 async def end_giveaway(message_id):
-    """Завершает розыгрыш с чистым оформлением"""
-    
     if message_id not in active_giveaways:
         return
     
@@ -479,6 +477,70 @@ async def scheduled_end_giveaway(message_id, end_time):
     if wait_time > 0:
         await asyncio.sleep(wait_time)
     await end_giveaway(message_id)
+
+# ============================================================
+# SLASH COMMAND: /GIVEAWAY
+# ============================================================
+
+@tree.command(name="giveaway", description="Create a new giveaway / Создать розыгрыш")
+@app_commands.describe(
+    duration="Duration (e.g., 1h, 24h, 7d) / Длительность (например, 1h, 24h, 7d)",
+    winners="Number of winners (1-10) / Количество победителей (1-10)",
+    prize="Prize description / Описание приза"
+)
+@app_commands.checks.has_any_role(*ADMIN_ROLE_IDS)
+async def giveaway_command(interaction: discord.Interaction, duration: str, winners: int, prize: str):
+    lang = get_user_lang(interaction.user)
+    
+    # Проверка прав (дублирующая на всякий случай)
+    if not has_permission(interaction.user, admin_only=True):
+        await interaction.response.send_message(t("no_permission", lang), ephemeral=True)
+        return
+    
+    # Проверка количества победителей
+    if winners < 1 or winners > 10:
+        await interaction.response.send_message(t("gw_invalid_winners", lang), ephemeral=True)
+        return
+    
+    # Проверка длительности
+    end_time = parse_duration(duration)
+    if not end_time:
+        await interaction.response.send_message(t("gw_invalid_duration", lang), ephemeral=True)
+        return
+    
+    # Создание розыгрыша
+    embed = create_giveaway_embed(prize, end_time, winners, interaction.user, lang)
+    view = GiveawayView(lang=lang)
+    
+    giveaway_msg = await interaction.channel.send(embed=embed, view=view)
+    
+    active_giveaways[giveaway_msg.id] = {
+        "prize": prize,
+        "end_time": end_time,
+        "winners": winners,
+        "host": interaction.user.id,
+        "participants": [],
+        "channel": interaction.channel,
+        "lang": lang
+    }
+    
+    await log_giveaway_action(
+        t("giveaway_created_log", lang),
+        f"Prize: {prize}\nDuration: {duration}\nWinners: {winners}\nChannel: #{interaction.channel.name}",
+        color=0x00FF00
+    )
+    
+    await interaction.response.send_message(t("gw_success", lang), ephemeral=True)
+    
+    asyncio.create_task(scheduled_end_giveaway(giveaway_msg.id, end_time))
+
+@giveaway_command.error
+async def giveaway_command_error(interaction: discord.Interaction, error):
+    lang = get_user_lang(interaction.user)
+    if isinstance(error, app_commands.errors.MissingAnyRole):
+        await interaction.response.send_message(t("no_permission", lang), ephemeral=True)
+    else:
+        await interaction.response.send_message(f"Error: {error}", ephemeral=True)
 
 # ============================================================
 # КЛАССЫ ДЛЯ ТИКЕТОВ
@@ -655,14 +717,20 @@ def create_tickets_embed(lang="en"):
 @client.event
 async def on_ready():
     await client.change_presence(status=discord.Status.do_not_disturb, activity=discord.Activity(type=discord.ActivityType.watching, name="Aeternis MU Online"))
+    
+    # Синхронизация слэш-команд
+    await tree.sync()
+    
     client.add_view(TicketPanelView())
     client.add_view(LangView())
     client.add_view(GiveawayView())
-    print("Aeternis Core v3.1 (Clean Giveaway) started")
+    
+    print("Aeternis Core v3.2 (Slash Commands) started")
     print(f"Bot: {client.user.name}")
     print(f"ID: {client.user.id}")
     print(f"Languages: EN / RU")
     print(f"Log Channel: {LOG_CHANNEL_ID}")
+    print(f"Slash Commands: /giveaway")
     print("-------------------------------")
 
 @client.event
@@ -719,51 +787,6 @@ async def on_message(message):
                 await message.delete()
             except:
                 pass
-    
-    if message.content.startswith("!giveaway"):
-        if not has_permission(message.author, admin_only=True):
-            await message.reply(t("no_permission", lang), ephemeral=True)
-            return
-        args = message.content.split()
-        if len(args) < 4:
-            await message.reply(t("gw_command_usage", lang), ephemeral=True)
-            return
-        duration_str = args[1]
-        try:
-            winners_count = int(args[2])
-            if winners_count < 1 or winners_count > 10:
-                await message.reply(t("gw_invalid_winners", lang), ephemeral=True)
-                return
-        except:
-            await message.reply(t("gw_invalid_winners", lang), ephemeral=True)
-            return
-        prize = " ".join(args[3:])
-        if not prize:
-            await message.reply(t("gw_no_prize", lang), ephemeral=True)
-            return
-        end_time = parse_duration(duration_str)
-        if not end_time:
-            await message.reply(t("gw_invalid_duration", lang), ephemeral=True)
-            return
-        embed = create_giveaway_embed(prize, end_time, winners_count, message.author, lang)
-        view = GiveawayView(lang=lang)
-        giveaway_msg = await message.channel.send(embed=embed, view=view)
-        active_giveaways[giveaway_msg.id] = {
-            "prize": prize,
-            "end_time": end_time,
-            "winners": winners_count,
-            "host": message.author.id,
-            "participants": [],
-            "channel": message.channel,
-            "lang": lang
-        }
-        await log_giveaway_action(
-            t("giveaway_created_log", lang),
-            f"Prize: {prize}\nDuration: {duration_str}\nWinners: {winners_count}\nChannel: #{message.channel.name}",
-            color=0x00FF00
-        )
-        await message.delete()
-        asyncio.create_task(scheduled_end_giveaway(giveaway_msg.id, end_time))
 
 # ============================================================
 # ЗАПУСК
