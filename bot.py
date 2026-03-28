@@ -8,7 +8,7 @@ Project: Aeternis MU Online
 import os
 import discord
 from dotenv import load_dotenv
-from discord.ui import Button, View, button
+from discord.ui import Button, View
 
 # ============================================================
 # ⚙️ КОНФИГУРАЦИЯ ПРАВ ДОСТУПА
@@ -79,13 +79,14 @@ def has_permission(member, admin_only=False):
     return False
 
 # ============================================================
-# 🎛️ КЛАССЫ КНОПОК И VIEW
+# 🎛️ КЛАССЫ КНОПОК И VIEW (PERSISTENT)
 # ============================================================
 
 class LanguageRoleButton(Button):
     """Кнопка для выбора языковой роли"""
     
     def __init__(self, label, emoji, role_id, style=discord.ButtonStyle.secondary):
+        # custom_id должен быть уникальным и постоянным для работы после перезагрузки
         super().__init__(label=label, emoji=emoji, style=style, custom_id=f"lang_{role_id}")
         self.role_id = role_id
     
@@ -93,22 +94,18 @@ class LanguageRoleButton(Button):
         member = interaction.user
         guild = interaction.guild
         
-        # Получаем роль по ID
         role = guild.get_role(self.role_id)
         if not role:
             await interaction.response.send_message("❌ Роль не найдена!", ephemeral=True)
             return
         
-        # Проверка: есть ли уже роль
         if role in member.roles:
-            # Удалить роль
             await member.remove_roles(role)
             await interaction.response.send_message(
                 f"❌ Роль **{role.name}** удалена.",
                 ephemeral=True
             )
         else:
-            # Добавить роль
             await member.add_roles(role)
             await interaction.response.send_message(
                 f"✅ Роль **{role.name}** добавлена!",
@@ -117,12 +114,12 @@ class LanguageRoleButton(Button):
 
 
 class LanguageRoleView(View):
-    """View с кнопками выбора языковых ролей"""
+    """View с кнопками выбора языковых ролей (Вечный)"""
     
     def __init__(self):
+        # timeout=None делает кнопки активными бесконечно (после перезагрузки тоже)
         super().__init__(timeout=None)
         
-        # Добавляем кнопки для каждого языка
         self.add_item(LanguageRoleButton(label="General", emoji="🌍", role_id=LANGUAGE_ROLES["general"], style=discord.ButtonStyle.primary))
         self.add_item(LanguageRoleButton(label="Español", emoji="🇪🇸", role_id=LANGUAGE_ROLES["es"]))
         self.add_item(LanguageRoleButton(label="Português", emoji="🇵🇹", role_id=LANGUAGE_ROLES["pt"]))
@@ -151,8 +148,9 @@ def create_roles_embed():
         timestamp=discord.utils.utcnow()
     )
     
-    embed.set_thumbnail(url="https://i.imgur.com/your-server-logo.png")  # Замени на логотип Aeternis
-    embed.set_footer(text="Aeternis Core • MU Online", icon_url="https://i.imgur.com/your-bot-avatar.png")
+    # ❌ Превью картинки убрано по запросу
+    
+    embed.set_footer(text="Aeternis Core • MU Online")
     
     embed.add_field(
         name="📋 Available Languages",
@@ -196,24 +194,27 @@ async def on_ready():
         )
     )
     
+    # 🔥 РЕГИСТРАЦИЯ ПЕРСИСТЕНТНОГО VIEW
+    # Это заставляет Discord "вспомнить" кнопки после перезагрузки бота
+    client.add_view(LanguageRoleView())
+    
     print("✅ Aeternis Core успешно запущен!")
     print(f"👤 Бот: {client.user.name}")
     print(f"🆔 ID: {client.user.id}")
     print(f"🔴 Статус: Не беспокоить")
     print(f"👑 Владельцев: {len(OWNER_IDS)}")
     print(f"🛡️ Админ-ролей: {len(ADMIN_ROLE_IDS)}")
+    print(f"🔘 Персистентные кнопки: Активны")
     print("-------------------------------")
 
 
 @client.event
 async def on_message(message):
-    # Игнорируем сообщения от бота
     if message.author == client.user:
         return
     
     # Команда !roles
     if message.content.strip() == "!roles":
-        # Проверка прав (опционально - можно убрать если хочешь чтобы все могли использовать)
         if not isinstance(message.author, discord.Member):
             return
         
@@ -222,7 +223,6 @@ async def on_message(message):
         
         await message.channel.send(embed=embed, view=view)
         
-        # Удаляем сообщение пользователя с командой (опционально)
         try:
             await message.delete()
         except:
