@@ -38,7 +38,7 @@ LANGUAGE_ROLES = {
 
 TICKET_CATEGORY_ID = 1487369421440946236
 LOG_CHANNEL_ID = 1487390220830900344
-GIVEAWAY_THUMBNAIL = "https://i.imgur.com/sKviD3r.jpeg"
+GIVEAWAY_THUMBNAIL = "https://i.imgur.com/7K8oSFK.png"
 
 # ============================================================
 # СИСТЕМА ЛОКАЛИЗАЦИИ
