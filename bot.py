@@ -38,7 +38,7 @@ LANGUAGE_ROLES = {
 
 TICKET_CATEGORY_ID = 1487369421440946236
 LOG_CHANNEL_ID = 1487390220830900344
-GIVEAWAY_BANNER = "https://i.imgur.com/Nce6GzV.jpeg"
+GIVEAWAY_BANNER = "https://i.imgur.com/sKviD3r.jpeg"
 
 # ============================================================
 # СИСТЕМА ЛОКАЛИЗАЦИИ
@@ -106,15 +106,15 @@ TEXTS = {
         "log_ticket_close": "Ticket Closed",
         
         "btn_enter_giveaway": "Enter Giveaway",
-        "giveaway_title": "GIVEAWAY",
-        "giveaway_prize": "Prize",
+        "giveaway_title": "🎉 NEW GIVEAWAY | Новый розыгрыш",
+        "giveaway_prize": "🎁 Prize",
         "giveaway_end": "Ends",
-        "giveaway_hosts": "Hosted by",
-        "giveaway_participants": "Participants",
+        "giveaway_hosts": "🚀 Creator",
+        "giveaway_participants": "📜 Participants",
         "giveaway_entered": "You have entered the giveaway!",
         "giveaway_already_entered": "You have already entered this giveaway!",
-        "giveaway_ended": "Giveaway Ended",
-        "giveaway_winner": "Winner",
+        "giveaway_ended": "❌ Giveaway Ended",
+        "giveaway_winner": "⭐ Winner",
         "giveaway_no_participants": "No participants in this giveaway!",
         "giveaway_created": "Giveaway created in {channel}!",
         "giveaway_ended_log": "Giveaway ended",
